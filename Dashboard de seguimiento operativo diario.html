@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nextbyn - Dashboard Ejecutivo Operativo V3</title>
+    <!-- Tipografía corporativa -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* ==========================================================================
+           1. VARIABLES CORPORATIVAS Y CONFIGURACIÓN BASE
+           ========================================================================== */
+        :root {
+            /* Colores Corporativos */
+            --corp-blue: #1e3a8a;       
+            --corp-blue-light: #2563eb;
+            --corp-orange: #ea580c;     
+            --corp-gray-bg: #f3f4f6;    
+            --corp-gray-card: #ffffff;  
+            
+            /* Textos y Bordes */
+            --text-main: #1f2937;
+            --text-muted: #6b7280;
+            --border-light: #e5e7eb;
+            
+            /* Estados (Semáforo) */
+            --status-ok: #10b981;       
+            --status-ok-bg: #d1fae5;
+            --status-warn: #f59e0b;     
+            --status-warn-bg: #fef3c7;
+            --status-crit: #ef4444;     
+            --status-crit-bg: #fee2e2;
+            
+            /* Sombras Ejecutivas */
+            --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            --shadow-card-hover: 0 12px 20px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-modal: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            
+            /* Transiciones */
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            /* Fondo pastel extendido a todo el dashboard */
+            background-color: #eff6ff;
+            background-image: linear-gradient(180deg, #dbeafe 0%, #eff6ff 100%);
+            background-attachment: fixed; /* Mantiene el degradado fijo al hacer scroll */
+            color: var(--text-main);
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            min-height: 100vh;
+        }
+
+        .dashboard-container {
+            max-width: 1440px; margin: 0 auto; padding: 24px;
+            display: flex; flex-direction: column; gap: 24px;
+        }
+
+        /* ==========================================================================
+           2. HEADER SUPERIOR Y CONTROLES GLOBALES
+           ========================================================================== */
+        .top-header {
+            background: linear-gradient(90deg, var(--corp-blue) 0%, #172554 100%); color: white;
+            padding: 16px 24px; border-radius: 12px;
+            display: flex; justify-content: space-between; align-items: center;
+            box-shadow: var(--shadow-card);
+            border-bottom: 4px solid var(--corp-orange);
+        }
+
+        .header-brand { display: flex; align-items: center; gap: 12px; }
+        .header-title { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.025em; }
+        .header-subtitle { font-size: 0.875rem; color: #93c5fd; font-weight: 500; border-left: 1px solid #3b82f6; padding-left: 12px; }
+        
+        .header-controls { display: flex; align-items: center; gap: 24px; }
+        .current-date { font-size: 0.875rem; color: #d1d5db; font-weight: 500; }
+
+        /* Estado de Riesgo en Header */
+        .status-badge-global {
+            display: flex; align-items: center; gap: 8px;
+            background-color: rgba(255, 255, 255, 0.15); padding: 6px 16px;
+            border-radius: 999px; font-size: 0.875rem; font-weight: 600;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .status-dot {
+            width: 10px; height: 10px; background-color: var(--status-warn);
+            border-radius: 50%; box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7);
+            animation: pulse-yellow-global 2s infinite;
+        }
+        @keyframes pulse-yellow-global {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(245, 158, 11, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+        }
+
+        /* Botón de Restablecer Global (Power BI) */
+        .btn-reset {
+            display: none; align-items: center; gap: 8px;
+            background-color: var(--corp-orange); border: 1px solid rgba(255,255,255,0.3);
+            color: white; padding: 8px 16px; border-radius: 6px;
+            font-size: 0.875rem; font-weight: 600; cursor: pointer;
+            transition: var(--transition); animation: fadeIn 0.3s ease;
+            box-shadow: 0 4px 6px rgba(234, 88, 12, 0.3);
+        }
+        .btn-reset:hover { background-color: #c2410c; transform: scale(1.05); }
+
+        /* NUEVO: Tooltips */
+        .tooltip-container { position: relative; display: inline-flex; align-items: center; cursor: help; }
+        .tooltip-icon { color: var(--text-muted); margin-left: 6px; opacity: 0.7; transition: var(--transition); }
+        .tooltip-container:hover .tooltip-icon { color: var(--corp-blue); transform: scale(1.1); opacity: 1; }
+        .tooltip-text {
+            visibility: hidden; width: max-content; max-width: 250px; background-color: #1f2937;
+            color: #fff; text-align: center; border-radius: 6px; padding: 8px 12px;
+            position: absolute; z-index: 10; bottom: 125%; left: 50%; transform: translateX(-50%);
+            opacity: 0; transition: opacity 0.3s; font-size: 0.75rem; font-weight: 400; line-height: 1.4;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); white-space: normal;
+        }
+        .tooltip-text::after {
+            content: ""; position: absolute; top: 100%; left: 50%; margin-left: -5px;
+            border-width: 5px; border-style: solid; border-color: #1f2937 transparent transparent transparent;
+        }
+        .tooltip-container:hover .tooltip-text { visibility: visible; opacity: 1; }
+
+        /* ==========================================================================
+           3. TARJETAS GENERALES Y ANIMACIONES PULSE
+           ========================================================================== */
+        .card {
+            background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+            border-radius: 12px;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(0, 0, 0, 0.04);
+            border: 1px solid var(--border-light);
+            border-top: 4px solid var(--corp-blue); /* Contorno superior robusto para destacar tarjetas */
+            transition: var(--transition); position: relative;
+        }
+        .card:hover { 
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1), 0 4px 8px rgba(0, 0, 0, 0.05); 
+            transform: translateY(-2px); 
+        }
+
+        .card-header {
+            padding: 16px 20px; border-bottom: 1px solid var(--border-light);
+            background-color: transparent; display: flex; justify-content: space-between; align-items: center;
+            border-radius: 12px 12px 0 0;
+        }
+        .card-title { font-size: 1rem; font-weight: 600; color: var(--corp-blue); display: flex; align-items: center; gap: 8px; }
+        .card-body { padding: 20px; transition: opacity 0.4s ease; } /* Transición para actualización de datos */
+
+        /* Animación Pulse Profesional */
+        @keyframes pulse-soft-blue { 0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.4); } 70% { box-shadow: 0 0 0 6px rgba(37, 99, 235, 0); } 100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); } }
+        @keyframes pulse-soft-orange { 0% { box-shadow: 0 0 0 0 rgba(234, 88, 12, 0.4); } 70% { box-shadow: 0 0 0 6px rgba(234, 88, 12, 0); } 100% { box-shadow: 0 0 0 0 rgba(234, 88, 12, 0); } }
+        @keyframes pulse-soft-red { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); } 70% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+        @keyframes pulse-soft-yellow { 0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); } 70% { box-shadow: 0 0 0 6px rgba(245, 158, 11, 0); } 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); } }
+        @keyframes pulse-soft-green { 0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); } 70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); } 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); } }
+
+        /* ==========================================================================
+           4. KPIs PRINCIPALES (BOTÓN ENFOQUE Y SPARKLINES)
+           ========================================================================== */
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; }
+
+        .kpi-card {
+            border-top: 1px solid var(--border-light); /* Evita heredar el borde grueso azul de las tarjetas inferiores */
+            padding: 20px; display: flex; flex-direction: column; gap: 12px;
+            position: relative; /* Se eliminó 'overflow: hidden' para que los tooltips puedan salir de la tarjeta */
+            border-radius: 12px;
+        }
+        
+        /* Aseguramos que la tarjeta activa/hoverada siempre esté por encima de las demás para que el tooltip no quede tapado */
+        .kpi-card:hover { z-index: 20; }
+        .kpi-active { z-index: 10; border: 2px solid var(--corp-blue); transform: translateY(-4px); box-shadow: var(--shadow-card-hover); }
+
+        /* Colores laterales KPI y Fondos Pastel Suaves */
+        .kpi-card.accent-blue { border-left: 4px solid var(--corp-blue-light); background: linear-gradient(145deg, #ffffff 0%, #eff6ff 100%); }
+        .kpi-card.accent-orange { border-left: 4px solid var(--corp-orange); background: linear-gradient(145deg, #ffffff 0%, #fff7ed 100%); }
+        .kpi-card.accent-red { border-left: 4px solid var(--status-crit); background: linear-gradient(145deg, #ffffff 0%, #fef2f2 100%); }
+        .kpi-card.accent-yellow { border-left: 4px solid var(--status-warn); background: linear-gradient(145deg, #ffffff 0%, #fefce8 100%); }
+        .kpi-card.accent-green { border-left: 4px solid var(--status-ok); background: linear-gradient(145deg, #ffffff 0%, #f0fdf4 100%); }
+
+        .kpi-header { display: flex; justify-content: space-between; align-items: flex-start; }
+        .kpi-title-block { display: flex; flex-direction: column; gap: 4px; }
+        .kpi-title { color: var(--text-muted); font-size: 0.875rem; font-weight: 600; line-height: 1.2;}
+        .kpi-icon { color: var(--corp-blue); opacity: 0.8; }
+        
+        .kpi-value { font-size: 2.25rem; font-weight: 700; color: var(--text-main); line-height: 1; margin-top: 4px;}
+        .kpi-footer { display: flex; align-items: center; justify-content: space-between; gap: 6px; font-size: 0.75rem; font-weight: 500; margin-top: 4px; }
+        .kpi-footer-trend { display: flex; align-items: center; gap: 8px; }
+
+        .trend-up { color: var(--status-ok); }
+        .trend-down { color: var(--status-crit); }
+        .trend-warn { color: var(--status-warn); }
+        
+        /* NUEVO: Contenedor para el minigráfico */
+        .sparkline-svg { display: block; opacity: 0.8; }
+
+        /* Botón Enfoque dentro del KPI - CORREGIDO (Sin solapamiento) */
+        .btn-kpi-focus {
+            background-color: transparent; border: 1px solid currentColor; color: inherit;
+            padding: 4px 10px; border-radius: 999px; font-size: 0.7rem; font-weight: 600;
+            cursor: pointer; display: flex; align-items: center; gap: 4px;
+            transition: var(--transition);
+        }
+        
+        .btn-kpi-focus:hover { transform: scale(1.05); filter: brightness(1.2); }
+
+        .kpi-card.accent-blue .btn-kpi-focus { color: var(--corp-blue-light); animation: focus-pulse-blue 2s infinite; }
+        .kpi-card.accent-orange .btn-kpi-focus { color: var(--corp-orange); animation: focus-pulse-orange 2s infinite; }
+        .kpi-card.accent-red .btn-kpi-focus { color: var(--status-crit); animation: focus-pulse-red 2s infinite; }
+        .kpi-card.accent-yellow .btn-kpi-focus { color: var(--status-warn); animation: focus-pulse-yellow 2s infinite; }
+        .kpi-card.accent-green .btn-kpi-focus { color: var(--status-ok); animation: focus-pulse-green 2s infinite; }
+
+        /* Animaciones exclusivas para el botón Enfoque (Titilado más visible + Shadow) */
+        @keyframes focus-pulse-blue { 0%, 100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.4); background-color: rgba(37, 99, 235, 0); } 50% { background-color: rgba(37, 99, 235, 0.15); } 70% { box-shadow: 0 0 0 5px rgba(37, 99, 235, 0); } }
+        @keyframes focus-pulse-orange { 0%, 100% { box-shadow: 0 0 0 0 rgba(234, 88, 12, 0.4); background-color: rgba(234, 88, 12, 0); } 50% { background-color: rgba(234, 88, 12, 0.15); } 70% { box-shadow: 0 0 0 5px rgba(234, 88, 12, 0); } }
+        @keyframes focus-pulse-red { 0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); background-color: rgba(239, 68, 68, 0); } 50% { background-color: rgba(239, 68, 68, 0.15); } 70% { box-shadow: 0 0 0 5px rgba(239, 68, 68, 0); } }
+        @keyframes focus-pulse-yellow { 0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); background-color: rgba(245, 158, 11, 0); } 50% { background-color: rgba(245, 158, 11, 0.15); } 70% { box-shadow: 0 0 0 5px rgba(245, 158, 11, 0); } }
+        @keyframes focus-pulse-green { 0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); background-color: rgba(16, 185, 129, 0); } 50% { background-color: rgba(16, 185, 129, 0.15); } 70% { box-shadow: 0 0 0 5px rgba(16, 185, 129, 0); } }
+
+        /* Clases dinámicas al filtrar */
+        .kpi-dimmed { opacity: 0.4; filter: grayscale(0.8); transform: scale(0.98); pointer-events: none; }
+        .kpi-active { z-index: 10; border: 2px solid var(--corp-blue); transform: translateY(-4px); box-shadow: var(--shadow-card-hover); }
+
+        /* ==========================================================================
+           5. SEMÁFORO SLA Y BOTONES ENFOQUE
+           ========================================================================== */
+        .card-pastel {
+            /* Volvemos al fondo blanco base de tarjeta para que resalten los bloques internos */
+            background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%) !important;
+        }
+
+        .sla-grid {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px;
+            background-color: var(--border-light); /* Línea divisoria gris claro */
+            border-radius: 12px; overflow: hidden; margin-top: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+
+        .sla-block { 
+            padding: 24px; text-align: center; position: relative; 
+        }
+
+        /* Colores de Semáforo en Tonos Pastel por bloque */
+        .sla-block:nth-child(1) { background: linear-gradient(145deg, #ffffff 0%, #ecfdf5 100%); } /* Verde Pastel */
+        .sla-block:nth-child(2) { background: linear-gradient(145deg, #ffffff 0%, #fefce8 100%); } /* Amarillo Pastel */
+        .sla-block:nth-child(3) { background: linear-gradient(145deg, #ffffff 0%, #fef2f2 100%); } /* Rojo Pastel */
+
+        .sla-block-title { font-size: 0.875rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+
+        /* Botón Enfoque SLA */
+        .btn-focus {
+            background: rgba(255, 255, 255, 0.7); border: 1px solid currentColor; color: inherit;
+            border-radius: 6px; padding: 4px 8px; font-size: 0.7rem; font-weight: 600;
+            cursor: pointer; display: inline-flex; align-items: center; gap: 4px;
+            transition: var(--transition);
+        }
+        .btn-focus:hover { transform: scale(1.05); filter: brightness(1.1); background: #ffffff; }
+        .sla-warn-btn { color: var(--status-warn); animation: pulse-soft-yellow 2s infinite; }
+        .sla-crit-btn { color: var(--status-crit); animation: pulse-soft-red 2s infinite; }
+
+        .sla-data { display: flex; justify-content: center; align-items: baseline; gap: 8px; margin-bottom: 16px; }
+        .sla-number { font-size: 2.5rem; font-weight: 700; color: var(--text-main); }
+        .sla-percentage { font-size: 1rem; font-weight: 600; color: var(--text-muted); }
+
+        .progress-track { height: 8px; background-color: var(--corp-gray-bg); border-radius: 999px; overflow: hidden; }
+        .progress-fill { height: 100%; border-radius: 999px; transition: width 1s ease-out; }
+        .fill-green { background-color: var(--status-ok); }
+        .fill-yellow { background-color: var(--status-warn); }
+        .fill-red { background-color: var(--status-crit); }
+
+        /* ==========================================================================
+           6. TABLAS, INCIDENTES Y NUEVAS DISTRIBUIDORAS
+           ========================================================================== */
+        .grid-2-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th { padding: 12px 16px; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; border-bottom: 2px solid var(--border-light); background-color: #fafafa; }
+        td { padding: 14px 16px; font-size: 0.875rem; border-bottom: 1px solid var(--border-light); color: var(--text-main); vertical-align: middle; transition: background-color 0.2s; }
+        tr:last-child td { border-bottom: none; }
+        tbody tr:hover td { background-color: #f9fafb; }
+
+        .cell-bold { font-weight: 600; }
+        .cell-number { font-variant-numeric: tabular-nums; font-weight: 500;}
+
+        /* Badges */
+        .badge { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.025em; }
+        .badge-soft-green { background-color: var(--status-ok-bg); color: #047857; }
+        .badge-soft-yellow { background-color: var(--status-warn-bg); color: #b45309; }
+        .badge-soft-red { background-color: var(--status-crit-bg); color: #b91c1c; }
+        .badge-elite { background-color: var(--corp-blue); color: white; box-shadow: 0 2px 4px rgba(30,58,138,0.3); }
+        .badge-standard { background-color: var(--corp-gray-bg); color: var(--text-muted); border: 1px solid var(--border-light); }
+
+        /* Mejora Visual: Top Incidentes Recurrentes */
+        .incident-row { position: relative; transition: var(--transition); }
+        .incident-row:hover { transform: translateY(-2px) scale(1.01); box-shadow: 0 4px 12px rgba(0,0,0,0.05); z-index: 1; border-radius: 8px; overflow: hidden;}
+        .incident-row td:first-child { border-left: 4px solid transparent; }
+        
+        .incident-row.accent-red td:first-child { border-left-color: var(--status-crit); }
+        .incident-row.accent-yellow td:first-child { border-left-color: var(--status-warn); }
+        .incident-row.accent-blue td:first-child { border-left-color: var(--corp-blue-light); }
+
+        .incident-cell { display: flex; align-items: center; gap: 12px; }
+        .incident-icon { 
+            width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center;
+            transition: var(--transition);
+        }
+        .incident-row.accent-red .incident-icon { background-color: var(--status-crit-bg); color: var(--status-crit); }
+        .incident-row.accent-yellow .incident-icon { background-color: var(--status-warn-bg); color: var(--status-warn); }
+        .incident-row.accent-blue .incident-icon { background-color: #dbeafe; color: var(--corp-blue-light); }
+        
+        .incident-row:hover .incident-icon { transform: scale(1.1) rotate(5deg); }
+
+        /* Mejora Visual: Nuevas Distribuidoras */
+        .distro-container { display: flex; flex-direction: column; gap: 16px; }
+        .distro-item { display: flex; flex-direction: column; gap: 6px; }
+        .distro-header { display: flex; justify-content: space-between; align-items: flex-end; }
+        .distro-name { font-size: 0.875rem; font-weight: 700; color: var(--text-main); }
+        .distro-stats { font-size: 0.75rem; font-weight: 600; color: var(--text-muted); display: flex; gap: 12px; }
+        .distro-stats-tickets { color: var(--corp-blue); }
+        
+        .distro-bar-bg { height: 12px; background-color: var(--corp-gray-bg); border-radius: 999px; overflow: hidden; display: flex; }
+        .distro-bar-fill { height: 100%; background-color: var(--corp-orange); border-radius: 999px; transition: width 1s cubic-bezier(0.4, 0, 0.2, 1); }
+
+        /* ==========================================================================
+           7. VENTANAS MODALES
+           ========================================================================== */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(15, 23, 42, 0.7); backdrop-filter: blur(4px);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 1000; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+        }
+        .modal-overlay.active { opacity: 1; pointer-events: all; }
+
+        .modal-content {
+            background-color: white; border-radius: 12px; width: 90%; max-width: 800px;
+            box-shadow: var(--shadow-modal);
+            transform: scale(0.95) translateY(20px); transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            overflow: hidden; opacity: 0;
+        }
+        .modal-overlay.active .modal-content { transform: scale(1) translateY(0); opacity: 1; }
+
+        .modal-header { padding: 20px 24px; border-bottom: 1px solid var(--border-light); display: flex; justify-content: space-between; align-items: center; background-color: #f8fafc; }
+        .modal-title { font-size: 1.25rem; font-weight: 700; display: flex; align-items: center; gap: 8px;}
+        .btn-close { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-muted); transition: color 0.2s; }
+        .btn-close:hover { color: var(--status-crit); transform: scale(1.1); }
+        .modal-body { padding: 24px; max-height: 70vh; overflow-y: auto; }
+
+        @media (max-width: 1024px) { .grid-2-cols { grid-template-columns: 1fr; } .sla-grid { gap: 16px; background: transparent; } .sla-block { border-radius: 8px; border: 1px solid var(--border-light); } }
+        @media (max-width: 768px) { 
+            .top-header { flex-direction: column; align-items: flex-start; gap: 16px; } 
+            .header-controls { width: 100%; justify-content: space-between; flex-wrap: wrap; gap: 16px; } 
+            .sla-grid { grid-template-columns: 1fr; } 
+        }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+<div class="dashboard-container">
+
+    <!-- 1️⃣ HEADER SUPERIOR -->
+    <header class="top-header">
+        <div class="header-brand">
+            <!-- SVG Recreado para transparencia perfecta sobre fondo oscuro -->
+            <svg width="125" height="36" viewBox="0 0 125 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <style>
+                    .logo-text-next { font-family: 'Inter', sans-serif; font-size: 26px; font-weight: 800; font-style: italic; fill: #ea580c; letter-spacing: -0.5px; }
+                    .logo-text-byn { font-family: 'Inter', sans-serif; font-size: 26px; font-weight: 500; font-style: italic; fill: #9ca3af; letter-spacing: -0.5px; }
+                    .logo-line { stroke: #9ca3af; stroke-width: 2.5; stroke-linecap: round; }
+                </style>
+                <text x="0" y="26" class="logo-text-next">Next</text>
+                <text x="59" y="26" class="logo-text-byn">byn</text>
+                <line x1="2" y1="34" x2="76" y2="34" class="logo-line"/>
+                <line x1="94" y1="34" x2="114" y2="34" class="logo-line"/>
+            </svg>
+            <div class="header-subtitle">Mesa de Ayuda - Supervisión Operativa</div>
+        </div>
+        
+        <div class="header-controls">
+            <!-- Botón Volver a Vista General -->
+            <button id="btn-reset-filter" class="btn-reset" onclick="resetDashboard()">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+                Volver a Vista General
+            </button>
+
+            <div class="status-badge-global">
+                <div class="status-dot"></div>
+                Riesgo Moderado
+            </div>
+            <div class="current-date">Viernes 06 de marzo – 11:10 AM</div>
+        </div>
+    </header>
+
+    <!-- 2️⃣ KPIs PRINCIPALES (BOTONES ENFOQUE Y NUEVOS SPARKLINES) -->
+    <section class="kpi-grid">
+        <div id="kpi-1" class="card kpi-card accent-blue">
+            <div class="kpi-header">
+                <div class="kpi-title-block">
+                    <span class="kpi-title tooltip-container">Tickets Abiertos Totales
+                        <svg class="tooltip-icon" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
+                        <span class="tooltip-text">Total de tickets con estado abierto o contactados en la mesa de ayuda</span>
+                    </span>
+                    <span class="kpi-value">142</span>
+                </div>
+                <!-- Se agregaron stroke-linecap y stroke-linejoin para evitar cortes visuales -->
+                <svg class="kpi-icon" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline></svg>
+            </div>
+            <div class="kpi-footer">
+                <span class="kpi-footer-trend">
+                    <span class="trend-warn">↑ +5%</span> vs ayer
+                    <!-- NUEVO: Sparkline de tendencia -->
+                    <svg class="sparkline-svg" width="30" height="12" viewBox="0 0 30 12"><path d="M0 12 L10 8 L20 10 L30 2" fill="none" stroke="var(--status-warn)" stroke-width="1.5" stroke-linecap="round"/></svg>
+                </span>
+                <button class="btn-kpi-focus" onclick="filterDashboard('kpi-abiertos', 'kpi-1')">
+                    <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg> Enfoque
+                </button>
+            </div>
+        </div>
+
+        <div id="kpi-2" class="card kpi-card accent-orange">
+            <div class="kpi-header">
+                <div class="kpi-title-block">
+                    <!-- NUEVO: Tooltip informativo -->
+                    <span class="kpi-title tooltip-container">SLA a vencer (< 24h)
+                        <svg class="tooltip-icon" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
+                        <span class="tooltip-text">Tickets cuyo tiempo máximo de resolución expira en las próximas 24 horas.</span>
+                    </span>
+                    <span class="kpi-value">18</span>
+                </div>
+                <svg class="kpi-icon" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            </div>
+            <div class="kpi-footer">
+                <span class="kpi-footer-trend">
+                    <span class="trend-down">Atención requerida</span>
+                    <svg class="sparkline-svg" width="30" height="12" viewBox="0 0 30 12"><path d="M0 8 L10 10 L20 6 L30 2" fill="none" stroke="var(--status-crit)" stroke-width="1.5" stroke-linecap="round"/></svg>
+                </span>
+                <button class="btn-kpi-focus" onclick="filterDashboard('kpi-sla', 'kpi-2')">
+                    <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg> Enfoque
+                </button>
+            </div>
+        </div>
+
+        <div id="kpi-3" class="card kpi-card accent-red">
+            <div class="kpi-header">
+                <div class="kpi-title-block">
+                    <span class="kpi-title tooltip-container">Backlog > 3 días (Aging)
+                        <svg class="tooltip-icon" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
+                        <span class="tooltip-text">Tickets estancados sin gestion por mas de 72 horas operativas</span>
+                    </span>
+                    <span class="kpi-value">24</span>
+                </div>
+                <svg class="kpi-icon" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+            </div>
+            <div class="kpi-footer">
+                <span class="kpi-footer-trend">
+                    <span class="trend-down">↑ +2 hoy</span>
+                    <svg class="sparkline-svg" width="30" height="12" viewBox="0 0 30 12"><path d="M0 10 L10 8 L20 6 L30 2" fill="none" stroke="var(--status-crit)" stroke-width="1.5" stroke-linecap="round"/></svg>
+                </span>
+                <button class="btn-kpi-focus" onclick="filterDashboard('kpi-aging', 'kpi-3')">
+                    <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg> Enfoque
+                </button>
+            </div>
+        </div>
+
+        <div id="kpi-4" class="card kpi-card accent-yellow">
+            <div class="kpi-header">
+                <div class="kpi-title-block">
+                    <span class="kpi-title tooltip-container">Escalado a Desarrollo
+                        <svg class="tooltip-icon" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
+                        <span class="tooltip-text">Porcentaje de tickets que requirieron ser transferidos al equipo de Desarrollo (L3).</span>
+                    </span>
+                    <span class="kpi-value">12.5%</span>
+                </div>
+                <svg class="kpi-icon" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="16 16 12 12 8 16"></polyline><line x1="12" y1="12" x2="12" y2="21"></line></svg>
+            </div>
+            <div class="kpi-footer">
+                <span class="kpi-footer-trend">
+                    <span class="trend-warn">Al límite (15%)</span>
+                    <svg class="sparkline-svg" width="30" height="12" viewBox="0 0 30 12"><path d="M0 8 L10 6 L20 8 L30 4" fill="none" stroke="var(--status-warn)" stroke-width="1.5" stroke-linecap="round"/></svg>
+                </span>
+                <button class="btn-kpi-focus" onclick="filterDashboard('kpi-escalados', 'kpi-4')">
+                    <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg> Enfoque
+                </button>
+            </div>
+        </div>
+
+        <div id="kpi-5" class="card kpi-card accent-green">
+            <div class="kpi-header">
+                <div class="kpi-title-block">
+                    <span class="kpi-title tooltip-container">First Contact Resol.
+                        <svg class="tooltip-icon" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
+                        <span class="tooltip-text">Porcentaje de tickets resueltos en la primera interacción con el cliente, sin necesidad de escalamiento.</span>
+                    </span>
+                    <span class="kpi-value">76.2%</span>
+                </div>
+                <svg class="kpi-icon" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+            </div>
+            <div class="kpi-footer">
+                <span class="kpi-footer-trend">
+                    <span class="trend-up">↑ +1.2%</span> vs sem.
+                    <svg class="sparkline-svg" width="30" height="12" viewBox="0 0 30 12"><path d="M0 10 L10 6 L20 4 L30 2" fill="none" stroke="var(--status-ok)" stroke-width="1.5" stroke-linecap="round"/></svg>
+                </span>
+                <button class="btn-kpi-focus" onclick="filterDashboard('kpi-fcr', 'kpi-5')">
+                    <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg> Enfoque
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- 3️⃣ SEMÁFORO SLA CON MODO ENFOQUE TITILANTE -->
+    <section class="card card-pastel">
+        <div class="card-header">
+            <h2 class="card-title">
+                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 3v18h18"></path><path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"></path></svg>
+                Semáforo de Cumplimiento SLA (Tickets Activos)
+            </h2>
+        </div>
+        <div class="card-body">
+            <div class="sla-grid">
+                <div class="sla-block">
+                    <div class="sla-block-title" style="color: var(--status-ok);">SLA Saludable</div>
+                    <div class="sla-data"><span class="sla-number" id="sla-ok-val">104</span><span class="sla-percentage" id="sla-ok-pct">73%</span></div>
+                    <div class="progress-track"><div id="sla-ok-bar" class="progress-fill fill-green" style="width: 73%;"></div></div>
+                </div>
+                
+                <div class="sla-block">
+                    <div class="sla-block-title" style="color: var(--status-warn);">
+                        En Riesgo (< 24h)
+                        <button class="btn-focus sla-warn-btn" onclick="openModal('modal-riesgo')">
+                            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg> Enfoque
+                        </button>
+                    </div>
+                    <div class="sla-data"><span class="sla-number" id="sla-warn-val">25</span><span class="sla-percentage" id="sla-warn-pct">18%</span></div>
+                    <div class="progress-track"><div id="sla-warn-bar" class="progress-fill fill-yellow" style="width: 18%;"></div></div>
+                </div>
+
+                <div class="sla-block">
+                    <div class="sla-block-title" style="color: var(--status-crit);">
+                        SLA Vencido
+                        <button class="btn-focus sla-crit-btn" onclick="openModal('modal-vencido')">
+                            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg> Enfoque
+                        </button>
+                    </div>
+                    <div class="sla-data"><span class="sla-number" id="sla-crit-val">13</span><span class="sla-percentage" id="sla-crit-pct">9%</span></div>
+                    <div class="progress-track"><div id="sla-crit-bar" class="progress-fill fill-red" style="width: 9%;"></div></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- GRID INFERIOR (2 COLUMNAS) -->
+    <div class="grid-2-cols">
+        
+        <!-- 4️⃣ DISTRIBUCIÓN POR OPERADORES -->
+        <section class="card">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                    Distribución por Operadores (L1/L2)
+                </h2>
+            </div>
+            <div class="card-body" style="padding: 0;">
+                <div style="overflow-x: auto;">
+                    <table>
+                        <thead><tr><th>Operador</th><th>Asignados</th><th>Riesgo SLA</th><th>Carga</th></tr></thead>
+                        <tbody id="tbody-operadores">
+                            <!-- Datos inyectados via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- 5️⃣ MAPA DE DOLOR POR CLIENTE -->
+        <section class="card">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
+                    Mapa de Dolor por Cliente
+                </h2>
+            </div>
+            <div class="card-body" style="padding: 0;">
+                <div style="overflow-x: auto;">
+                    <table>
+                        <thead><tr><th>Cliente</th><th>Volumen</th><th>Cuenta</th><th>Aging Prom.</th></tr></thead>
+                        <tbody id="tbody-clientes">
+                            <!-- Datos inyectados via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- GRID INFERIOR (2 COLUMNAS) -->
+    <div class="grid-2-cols">
+        
+        <!-- 6️⃣ TOP 5 INCIDENTES RECURRENTES CON IMPACTO VISUAL -->
+        <section class="card">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                    Top 5 Incidentes Recurrentes
+                </h2>
+            </div>
+            <div class="card-body" style="padding: 8px 0;">
+                <div style="overflow-x: auto;">
+                    <table style="border-collapse: separate; border-spacing: 0 8px; padding: 0 16px;">
+                        <tbody id="tbody-incidentes">
+                            <!-- Datos inyectados via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- 7️⃣ NUEVA TARJETA: CARGA NUEVAS DISTRIBUIDORAS -->
+        <section class="card">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                    Nueva Carga de Consultas – Nuevas Distribuidoras
+                    <span class="badge badge-soft-green" style="margin-left: 8px;">NUEVA</span>
+                </h2>
+            </div>
+            <div class="card-body">
+                <div id="chart-distros" class="distro-container">
+                    <!-- Datos inyectados via JS -->
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+</div>
+
+<!-- ==========================================================================
+     VENTANAS MODALES
+     ========================================================================== -->
+<div id="modal-riesgo" class="modal-overlay" onclick="closeModal(event, 'modal-riesgo')">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <div class="modal-title" style="color: var(--status-warn);">
+                <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                Modo Enfoque: Top Tickets en Riesgo
+            </div>
+            <button class="btn-close" onclick="closeModal(null, 'modal-riesgo')">&times;</button>
+        </div>
+        <div class="modal-body" style="padding: 0;">
+            <table>
+                <thead><tr><th>ID Ticket</th><th>Cliente</th><th>Prioridad</th><th>Vencimiento</th></tr></thead>
+                <tbody>
+                    <tr><td class="cell-bold">#TKT-8901</td><td>EMCESA</td><td><span class="badge badge-soft-red">ALTA</span></td><td style="color: var(--status-warn); font-weight: 600;">Hoy 12:30</td></tr>
+                    <tr><td class="cell-bold">#TKT-8905</td><td>AGUANORT</td><td><span class="badge badge-soft-red">ALTA</span></td><td style="color: var(--status-warn); font-weight: 600;">Hoy 14:00</td></tr>
+                    <tr><td class="cell-bold">#TKT-8912</td><td>SERVIMAR</td><td><span class="badge badge-soft-yellow">MEDIA</span></td><td style="color: var(--status-warn); font-weight: 600;">Hoy 15:45</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div id="modal-vencido" class="modal-overlay" onclick="closeModal(event, 'modal-vencido')">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <div class="modal-title" style="color: var(--status-crit);">
+                <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                Modo Enfoque: Vencidos por Equipo
+            </div>
+            <button class="btn-close" onclick="closeModal(null, 'modal-vencido')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <!-- Simulación de gráfico de barras simple para modal -->
+            <div style="display:flex; flex-direction:column; gap: 16px;">
+                <div style="display:flex; align-items:center; gap: 12px;">
+                    <div style="width:140px; font-weight:600;">Order to Bill</div>
+                    <div style="flex:1; height:12px; background:#f3f4f6; border-radius:6px;"><div style="width:46%; height:100%; background:var(--status-crit); border-radius:6px;"></div></div>
+                    <div style="font-weight:700; color:var(--status-crit);">6</div>
+                </div>
+                <div style="display:flex; align-items:center; gap: 12px;">
+                    <div style="width:140px; font-weight:600;">Accounting to Cash</div>
+                    <div style="flex:1; height:12px; background:#f3f4f6; border-radius:6px;"><div style="width:30%; height:100%; background:var(--status-crit); border-radius:6px;"></div></div>
+                    <div style="font-weight:700; color:var(--status-crit);">4</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==========================================================================
+     LÓGICA JAVASCRIPT: MOTOR DE SIMULACIÓN DE DATOS DINÁMICOS Y FILTROS
+     ========================================================================== -->
+<script>
+    /* GENERADORES DE HTML PARA MANTENER LIMPIEZA Y AGREGAR ÍCONOS VISUALES */
+    
+    // Generador con Avatar para Operadores
+    function getOpHTML(initials, name, asig, riesgo, rColor, bClass, bText) {
+        return `<tr>
+            <td>
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <div style="width:28px;height:28px;border-radius:50%;background:#e0e7ff;color:var(--corp-blue);display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;box-shadow:0 2px 4px rgba(0,0,0,0.05);">${initials}</div>
+                    <span class="cell-bold">${name}</span>
+                </div>
+            </td>
+            <td class="cell-number">${asig}</td>
+            <td class="cell-number" style="color: ${rColor ? 'var(--status-'+rColor+')' : 'inherit'}; font-weight: ${rColor ? '600' : 'normal'};">${riesgo}</td>
+            <td><span class="badge ${bClass}">${bText}</span></td>
+        </tr>`;
+    }
+
+    // Generador con Ícono de Edificio para Clientes
+    function getCliHTML(name, vol, bClass, bText, aging, aColor) {
+        const svgBldg = `<svg width="16" height="16" fill="none" stroke="#9ca3af" stroke-width="2" viewBox="0 0 24 24"><path d="M3 21h18M9 21V9a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v12M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16M9 7h6M9 11h6M9 15h6"></path></svg>`;
+        return `<tr>
+            <td>
+                <div style="display:flex;align-items:center;gap:8px;">
+                    ${svgBldg}
+                    <span class="cell-bold">${name}</span>
+                </div>
+            </td>
+            <td class="cell-number">${vol}</td>
+            <td><span class="badge ${bClass}">${bText}</span></td>
+            <td style="color: ${aColor ? 'var(--status-'+aColor+')' : 'inherit'}; font-weight: ${aColor ? '600' : 'normal'};">${aging}</td>
+        </tr>`;
+    }
+
+    function getIncidentesHTML(c1, c2, c3, c4, c5) {
+        const svgClock = `<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`;
+        const svgChart = `<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"></path></svg>`;
+        const svgDb = `<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>`;
+        const svgSync = `<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"></polyline><polyline points="23 20 23 14 17 14"></polyline><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path></svg>`;
+        const svgSend = `<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>`;
+        
+        const inc = [
+            { t: 'Lentitud del sistema', i: svgClock, a: 'Derivar / escalar reunión con área', c: c1 },
+            { t: 'Error gráfica', i: svgChart, a: 'Derivar / escalar reunión con área', c: c2 },
+            { t: 'Error padrón IIBB', i: svgDb, a: 'Escalar / hablar con especialista', c: c3 },
+            { t: 'Diferencia EDF ERP VS PORTAL', i: svgSync, a: 'Correr sincronización / escalar', c: c4 },
+            { t: 'No envía pedido Vendo', i: svgSend, a: 'Solicitar correr sincro / escalar', c: c5 }
+        ];
+
+        let html = '';
+        inc.forEach(x => {
+            if(!x.c) return; 
+            let colorCls = x.c === 'red' ? 'accent-red' : x.c === 'yellow' ? 'accent-yellow' : x.c === 'green' ? 'accent-green' : 'accent-blue';
+            html += `
+            <tr class="incident-row ${colorCls}">
+                <td style="width: 45%;">
+                    <div class="incident-cell">
+                        <div class="incident-icon">${x.i}</div>
+                        <span class="cell-bold">${x.t}</span>
+                    </div>
+                </td>
+                <td style="color: var(--text-muted); font-size: 0.8rem;">${x.a}</td>
+            </tr>`;
+        });
+        return html;
+    }
+
+    // Agregado de Ícono de Tienda a las Distribuidoras
+    function getDistrosHTML(dataArr) {
+        const svgStore = `<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>`;
+        let html = '';
+        dataArr.forEach(d => {
+            html += `
+            <div class="distro-item">
+                <div class="distro-header">
+                    <span class="distro-name" style="display:flex; align-items:center; gap:6px;">
+                        <span style="color: var(--corp-orange); opacity: 0.8;">${svgStore}</span>
+                        ${d.n}
+                    </span>
+                    <div class="distro-stats">
+                        <span class="distro-stats-tickets">${d.t} tickets</span>
+                        <span>${d.p}% de la carga total</span>
+                    </div>
+                </div>
+                <div class="distro-bar-bg">
+                    <div class="distro-bar-fill" style="width: ${d.p}%;"></div>
+                </div>
+            </div>`;
+        });
+        return html;
+    }
+
+    /* DICCIONARIO DE DATOS SIMULADOS POR CONTEXTO (POWER BI EFFECT) */
+    const dashboardData = {
+        general: {
+            sla: { ok: 104, okP: '73%', warn: 25, warnP: '18%', crit: 13, critP: '9%' },
+            operadores: 
+                getOpHTML('PZ', 'PAULA ZAMPAR', '14', '3', 'crit', 'badge-soft-red', 'ALTA') +
+                getOpHTML('NM', 'NICOLAS MOYA', '8', '1', 'warn', 'badge-soft-yellow', 'MEDIA') +
+                getOpHTML('IZ', 'IVAN ZENCICH', '3', '0', null, 'badge-soft-green', 'BAJA') +
+                getOpHTML('DM', 'DAIANA MEDINA', '15', '4', 'crit', 'badge-soft-red', 'ALTA'),
+            clientes: 
+                getCliHTML('EMCESA', '45', 'badge-elite', 'ELITE', '4.2 días', 'crit') +
+                getCliHTML('AGUANORT', '30', 'badge-elite', 'ELITE', '2.1 días', 'warn') +
+                getCliHTML('SERVIMAR', '22', 'badge-elite', 'ELITE', '5.5 días', 'crit') +
+                getCliHTML('MORELLO', '18', 'badge-standard', 'Standard', '1.8 días', null) +
+                getCliHTML('NESFULL', '12', 'badge-standard', 'Standard', '3.0 días', null),
+            incidentes: getIncidentesHTML('red', 'red', 'yellow', 'blue', 'blue'),
+            distros: getDistrosHTML([ {n:'RPN CORP', t:128, p:18}, {n:'LUNA DISTRIBUCIONES', t:96, p:14}, {n:'LOS AMORES', t:65, p:9}, {n:'ARVEJOS', t:42, p:6}, {n:'BAMBINOS', t:28, p:4} ])
+        },
+        'kpi-sla': { 
+            sla: { ok: 0, okP: '0%', warn: 25, warnP: '100%', crit: 0, critP: '0%' },
+            operadores: 
+                getOpHTML('PZ', 'PAULA ZAMPAR', '3', '3', 'warn', 'badge-soft-red', 'ALTA') +
+                getOpHTML('DM', 'DAIANA MEDINA', '4', '4', 'warn', 'badge-soft-red', 'ALTA') +
+                getOpHTML('NM', 'NICOLAS MOYA', '1', '1', 'warn', 'badge-soft-yellow', 'MEDIA') +
+                `<tr><td colspan="4" style="text-align:center; color:var(--text-muted); font-style:italic;">Filtrado: Mostrando solo operadores con tickets en riesgo (<24h)</td></tr>`,
+            clientes: 
+                getCliHTML('AGUANORT', '12', 'badge-elite', 'ELITE', '2.1 días', 'warn') +
+                getCliHTML('MORELLO', '8', 'badge-standard', 'Standard', '1.8 días', 'warn') +
+                getCliHTML('NESFULL', '5', 'badge-standard', 'Standard', '1.9 días', 'warn'),
+            incidentes: getIncidentesHTML('red', 'yellow', null, 'yellow', null), 
+            distros: getDistrosHTML([ {n:'RPN CORP', t:18, p:72}, {n:'LUNA DISTRIBUCIONES', t:7, p:28} ])
+        },
+        'kpi-aging': { 
+            sla: { ok: 0, okP: '0%', warn: 0, warnP: '0%', crit: 24, critP: '100%' },
+            operadores: 
+                getOpHTML('PZ', 'PAULA ZAMPAR', '8', '8 (Venc.)', 'crit', 'badge-soft-red', 'ALTA') +
+                getOpHTML('DM', 'DAIANA MEDINA', '12', '12 (Venc.)', 'crit', 'badge-soft-red', 'ALTA'),
+            clientes: 
+                getCliHTML('SERVIMAR', '10', 'badge-elite', 'ELITE', '7.5 días', 'crit') +
+                getCliHTML('EMCESA', '8', 'badge-elite', 'ELITE', '6.2 días', 'crit') +
+                getCliHTML('NESFULL', '6', 'badge-standard', 'Standard', '5.0 días', 'crit'),
+            incidentes: getIncidentesHTML(null, null, 'red', 'red', null), 
+            distros: getDistrosHTML([ {n:'LOS AMORES', t:15, p:62}, {n:'ARVEJOS', t:9, p:38} ])
+        },
+        'kpi-escalados': { 
+            sla: { ok: 5, okP: '28%', warn: 8, warnP: '44%', crit: 5, critP: '28%' },
+            operadores: 
+                getOpHTML('DM', 'DAIANA MEDINA', '8', 'Escalados: 5', null, 'badge-soft-red', 'ESPERA DEV') +
+                getOpHTML('PZ', 'PAULA ZAMPAR', '6', 'Escalados: 4', null, 'badge-soft-red', 'ESPERA DEV'),
+            clientes: 
+                getCliHTML('EMCESA', '12', 'badge-elite', 'ELITE', '3.2 días', 'warn'),
+            incidentes: getIncidentesHTML('yellow', 'red', null, 'red', null), 
+            distros: getDistrosHTML([ {n:'RPN CORP', t:12, p:66}, {n:'LUNA DISTRIBUCIONES', t:6, p:34} ])
+        },
+        'kpi-fcr': { 
+            sla: { ok: 104, okP: '100%', warn: 0, warnP: '0%', crit: 0, critP: '0%' },
+            operadores: 
+                getOpHTML('IZ', 'IVAN ZENCICH', '38', 'Resueltos FCR: 35', null, 'badge-soft-green', 'EXCELENTE') +
+                getOpHTML('NM', 'NICOLAS MOYA', '42', 'Resueltos FCR: 36', null, 'badge-soft-green', 'EXCELENTE'),
+            clientes: 
+                getCliHTML('AGUANORT', '18', 'badge-elite', 'ELITE', '0.2 días', 'ok') +
+                getCliHTML('MORELLO', '15', 'badge-standard', 'Standard', '0.1 días', 'ok'),
+            incidentes: getIncidentesHTML('green', null, null, null, 'green'), 
+            distros: getDistrosHTML([ {n:'RPN CORP', t:85, p:55}, {n:'LOS AMORES', t:40, p:25}, {n:'BAMBINOS', t:30, p:20} ])
+        },
+        'kpi-abiertos': null 
+    };
+
+    /* INICIALIZACIÓN */
+    document.addEventListener('DOMContentLoaded', () => {
+        renderData(dashboardData.general);
+    });
+
+    /* FUNCIÓN PRINCIPAL DE FILTRADO */
+    function filterDashboard(kpiKey, cardId) {
+        document.getElementById('btn-reset-filter').style.display = 'flex';
+        
+        const allKpis = document.querySelectorAll('.kpi-card');
+        allKpis.forEach(card => {
+            if (card.id === cardId) {
+                card.classList.remove('kpi-dimmed');
+                card.classList.add('kpi-active');
+            } else {
+                card.classList.remove('kpi-active');
+                card.classList.add('kpi-dimmed');
+            }
+        });
+
+        const dataSet = dashboardData[kpiKey] || dashboardData.general;
+        animateDataReplacement(dataSet);
+    }
+
+    /* RESTABLECER VISTA GLOBAL */
+    function resetDashboard() {
+        document.getElementById('btn-reset-filter').style.display = 'none';
+        const allKpis = document.querySelectorAll('.kpi-card');
+        allKpis.forEach(c => c.classList.remove('kpi-dimmed', 'kpi-active'));
+        animateDataReplacement(dashboardData.general);
+    }
+
+    /* ANIMACIÓN Y REEMPLAZO DE DATOS */
+    function animateDataReplacement(data) {
+        const containers = [
+            document.getElementById('tbody-operadores'),
+            document.getElementById('tbody-clientes'),
+            document.getElementById('tbody-incidentes'),
+            document.getElementById('chart-distros')
+        ];
+        
+        const cardBodies = document.querySelectorAll('.card-body');
+        cardBodies.forEach(cb => cb.style.opacity = '0.3');
+
+        setTimeout(() => {
+            renderData(data);
+            cardBodies.forEach(cb => cb.style.opacity = '1');
+        }, 300);
+    }
+
+    function renderData(data) {
+        document.getElementById('tbody-operadores').innerHTML = data.operadores;
+        document.getElementById('tbody-clientes').innerHTML = data.clientes;
+        document.getElementById('tbody-incidentes').innerHTML = data.incidentes;
+        document.getElementById('chart-distros').innerHTML = data.distros;
+
+        document.getElementById('sla-ok-val').textContent = data.sla.ok;
+        document.getElementById('sla-ok-pct').textContent = data.sla.okP;
+        document.getElementById('sla-ok-bar').style.width = data.sla.okP;
+
+        document.getElementById('sla-warn-val').textContent = data.sla.warn;
+        document.getElementById('sla-warn-pct').textContent = data.sla.warnP;
+        document.getElementById('sla-warn-bar').style.width = data.sla.warnP;
+
+        document.getElementById('sla-crit-val').textContent = data.sla.crit;
+        document.getElementById('sla-crit-pct').textContent = data.sla.critP;
+        document.getElementById('sla-crit-bar').style.width = data.sla.critP;
+    }
+
+    /* CONTROL DE MODALES */
+    function openModal(modalId) {
+        const m = document.getElementById(modalId);
+        if (m) { m.classList.add('active'); document.body.style.overflow = 'hidden'; }
+    }
+
+    function closeModal(event, modalId) {
+        if (!event || event.target.id === modalId) {
+            const m = document.getElementById(modalId);
+            if (m) { m.classList.remove('active'); document.body.style.overflow = 'auto'; }
+        }
+    }
+</script>
+</body>
+</html>
